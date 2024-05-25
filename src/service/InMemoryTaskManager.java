@@ -20,7 +20,7 @@ public class InMemoryTaskManager implements TaskManager {
     protected HashMap<Integer, Subtask> allSubtasks = new HashMap<>();
     protected HistoryManager history = Managers.getDefaultHistory();
     protected Set<Task> prioritizedTasks = new TreeSet<>(Comparator.comparing(Task::getStartTime));
-    protected final static int TIME_SLOT_MINUTES = 15;
+    protected static final int TIME_SLOT_MINUTES = 15;
     protected Map<LocalDateTime, Boolean> timeSlots; // Занатые слоты: true; Свободные слоты: false.
 
     public InMemoryTaskManager() {
@@ -48,7 +48,7 @@ public class InMemoryTaskManager implements TaskManager {
         return ++taskId;
     }
 
-    @Override // Готово
+    @Override
     public void createTask(Task task) {
         if (isTimeIntervalBooked(task.getStartTime(), task.getEndTime())) {
             throw new InvalidReceivedTimeException("Данное время занято другой задачей.");
@@ -59,7 +59,7 @@ public class InMemoryTaskManager implements TaskManager {
         addTaskToPrioritizedTasks(task);
     }
 
-    @Override // Готово
+    @Override
     public void createSubtask(Subtask subtask) {
         if (isTimeIntervalBooked(subtask.getStartTime(), subtask.getEndTime())) {
             throw new InvalidReceivedTimeException("Данное время занято другой задачей.");
@@ -73,7 +73,7 @@ public class InMemoryTaskManager implements TaskManager {
         updateEpicAttributes(epicOwner.getId());
     }
 
-    @Override // Готово
+    @Override
     public void createEpicTask(EpicTask epictask) {
         Integer newId = generateId();
         epictask.setId(newId);
@@ -81,43 +81,43 @@ public class InMemoryTaskManager implements TaskManager {
         updateEpicAttributes(newId);
     }
 
-    @Override // Готово
+    @Override
     public ArrayList<Task> getAllTasks() {
         return new ArrayList<>(allTasks.values());
     }
 
-    @Override // Готово
+    @Override
     public ArrayList<EpicTask> getAllEpicTasks() {
         return new ArrayList<>(allEpicTasks.values());
     }
 
-    @Override // Готово
+    @Override
     public ArrayList<Subtask> getAllSubtasks() {
         return new ArrayList<>(allSubtasks.values());
     }
 
-    @Override // Готово
+    @Override
     public Task getTask(Integer id) {
         Optional<Task> requestedTask = Optional.ofNullable(allTasks.get(id));
         requestedTask.ifPresent(history::add);
         return requestedTask.orElseThrow(() -> new NoSuchElementException("Задача (Task, id: " + id + ") не найдена."));
     }
 
-    @Override // Готово
+    @Override
     public EpicTask getEpicTask(Integer id) {
         Optional<EpicTask> requestedTask = Optional.ofNullable(allEpicTasks.get(id));
         requestedTask.ifPresent(history::add);
         return requestedTask.orElseThrow(() -> new NoSuchElementException("Задача (EpicTask, id: " + id + ") не найдена."));
     }
 
-    @Override // Готово
+    @Override
     public Subtask getSubtask(Integer id) {
         Optional<Subtask> requestedTask = Optional.ofNullable(allSubtasks.get(id));
         requestedTask.ifPresent(history::add);
         return requestedTask.orElseThrow(() -> new NoSuchElementException("Задача (Subtask, id: " + id + ") не найдена."));
     }
 
-    @Override // Готово
+    @Override
     public void deleteAllTasks() {
         allTasks.keySet().stream()
                 .peek(history::remove)
@@ -128,7 +128,7 @@ public class InMemoryTaskManager implements TaskManager {
         allTasks.clear();
     }
 
-    @Override // Готово
+    @Override
     public void deleteAllEpicTasks() {
         allSubtasks.keySet().stream()
                 .peek(history::remove)
@@ -141,7 +141,7 @@ public class InMemoryTaskManager implements TaskManager {
         allEpicTasks.clear();
     }
 
-    @Override // Готово
+    @Override
     public void deleteAllSubtasks() {
         allEpicTasks.values().stream()
                 .peek(EpicTask::deleteSubtasks)
@@ -157,7 +157,7 @@ public class InMemoryTaskManager implements TaskManager {
         allSubtasks.clear();
     }
 
-    @Override  // Готово
+    @Override
     public void deleteTask(Integer id) {
         final Task tempTask = allTasks.get(id);
         allTasks.remove(id);
@@ -166,7 +166,7 @@ public class InMemoryTaskManager implements TaskManager {
         freeTimeInTimeSlots(tempTask.getStartTime(), tempTask.getEndTime());
     }
 
-    @Override // Готово
+    @Override
     public void deleteEpicTask(Integer id) {
         final EpicTask tempEpic = allEpicTasks.get(id);
         history.remove(id);
@@ -180,7 +180,7 @@ public class InMemoryTaskManager implements TaskManager {
         allEpicTasks.remove(id);
     }
 
-    @Override // Готово
+    @Override
     public void deleteSubtask(Integer id) {
         final Subtask tempSub = allSubtasks.get(id);
         final EpicTask EpicOwner = allEpicTasks.get(tempSub.getEpicId());
@@ -191,14 +191,14 @@ public class InMemoryTaskManager implements TaskManager {
         updateEpicAttributes(EpicOwner.getId());
     }
 
-    @Override // Готово
+    @Override
     public ArrayList<Subtask> getSubtasksOfEpic(Integer id) {
         return (ArrayList<Subtask>) allEpicTasks.get(id).getSubtasks().stream()
                 .map(allSubtasks::get)
                 .collect(Collectors.toList());
     }
 
-    @Override // Готово
+    @Override
     public void updateTask(Task task) {
         if (isTimeIntervalBooked(task.getStartTime(), task.getEndTime())) {
             throw new InvalidReceivedTimeException("Данное время занято.");
@@ -209,7 +209,7 @@ public class InMemoryTaskManager implements TaskManager {
         }
     }
 
-    @Override // Готово
+    @Override
     public void updateSubtask(Subtask subtask) {
         if (isTimeIntervalBooked(subtask.getStartTime(), subtask.getEndTime())) {
             throw new InvalidReceivedTimeException("Данное время занято.");
@@ -223,7 +223,7 @@ public class InMemoryTaskManager implements TaskManager {
         }
     }
 
-    @Override // Готово
+    @Override
     public void updateEpicTask(EpicTask newEpictask) {
         if (allEpicTasks.containsKey(newEpictask.getId())) {
             EpicTask currEpicTask = allEpicTasks.get(newEpictask.getId());
@@ -261,17 +261,15 @@ public class InMemoryTaskManager implements TaskManager {
         }
     }
 
-    @Override // Готово
+    @Override
     public ArrayList<Task> getPrioritizedTasks() {
         return new ArrayList<>(prioritizedTasks);
     }
 
-    // Готово
     private boolean isPossibleToPrioritizeByTime(Task task) {
         return task != null && task.getStartTime() != null;
     }
 
-    // Готово
     private void addTaskToPrioritizedTasks(Task task) {
         if (isPossibleToPrioritizeByTime(task)) {
             prioritizedTasks.add(task);
@@ -279,8 +277,7 @@ public class InMemoryTaskManager implements TaskManager {
         }
     }
 
-    // Готово
-    private void updateEpicAttributes(int id){
+    private void updateEpicAttributes(int id) {
         final EpicTask epic = allEpicTasks.get(id);
         final List<Integer> idList = epic.getSubtasks();
         final HashMap<Integer, Subtask> AllSubs = allSubtasks;
