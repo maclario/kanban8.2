@@ -2,7 +2,7 @@ package service;
 
 import exceptions.LoadingFromFileException;
 import exceptions.SavingToFileException;
-import mappers.CSVFormatter;
+import util.CSVFormatter;
 import model.EpicTask;
 import model.Subtask;
 import model.Task;

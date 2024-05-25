@@ -1,5 +1,7 @@
 package model;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 
 public class EpicTask extends Task {
@@ -9,12 +11,22 @@ public class EpicTask extends Task {
         super(title, description);
     }
 
-    public EpicTask(Integer id, String title, String description, TaskStatus status) {
-        super(id, title, description, status);
+    public EpicTask(Integer id, String title, String description,
+                    TaskStatus status, Duration duration, LocalDateTime startTime) {
+        super(id, title, description, status, duration, startTime);
     }
 
     public TaskType getType() {
         return TaskType.EPIC;
+    }
+
+    public void setEndTime(LocalDateTime endTime) {
+        this.endTime = endTime;
+    }
+
+    @Override
+    public LocalDateTime getEndTime() {
+        return endTime;
     }
 
     public void addSubtask(Integer id) {
@@ -40,6 +52,9 @@ public class EpicTask extends Task {
                 ", title='" + title + '\'' +
                 ", description='" + description + '\'' +
                 ", status=" + status +
+                ", duration=" + duration +
+                ", startTime=" + startTime +
+                ", endTime=" + endTime +
                 '}';
     }
 }

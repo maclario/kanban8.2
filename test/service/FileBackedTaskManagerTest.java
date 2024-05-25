@@ -15,7 +15,7 @@ import java.nio.file.Paths;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class FileBackedTaskManagerTest extends TaskManagerTest {
+public class FileBackedTaskManagerTest extends TaskManagerTest<FileBackedTaskManager> {
     private Path backupFile;
 
     private String[] readBackupFile(Path backupFile) {
@@ -28,34 +28,18 @@ public class FileBackedTaskManagerTest extends TaskManagerTest {
         return content.split(System.lineSeparator());
     }
 
+    @Override
     @BeforeEach
-    public void BeforeEach() {
+    public void beforeEach() {
         try {
             backupFile = Files.createTempFile(Paths.get("test_resources"), "backupFileTest", ".csv");
         } catch (IOException e) {
             throw new RuntimeException("Ошибка при создании временного файла backupFileTest.", e);
         }
+
         backupFile.toFile().deleteOnExit();
-
         manager = new FileBackedTaskManager(backupFile.toFile());
-
-        task = new Task("TaskTitle_1", "TaskDesc_1");
-        manager.createTask(task);
-
-        epic = new EpicTask("EpicTitle_2", "EpicDesc_2");
-        manager.createEpicTask(epic);
-        Integer epicId = epic.getId();
-
-        sub = new Subtask("SubtaskTitle_3", "SubtaskDesc_3", epicId);
-        manager.createSubtask(sub);
-
-        subWithStatusDone = new Subtask("newSubTitle", "newSubDesc", epicId);
-        subWithStatusDone.setId(sub.getId());
-        subWithStatusDone.setStatus(TaskStatus.DONE);
-
-        subWithStatusInProgress = new Subtask("newSubTitle2", "newSubDesc2", epicId);
-        subWithStatusInProgress.setId(sub.getId() + 1);
-        subWithStatusInProgress.setStatus(TaskStatus.IN_PROGRESS);
+        super.beforeEach();
     }
 
     @Test
