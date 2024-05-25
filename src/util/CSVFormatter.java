@@ -6,7 +6,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 
 public class CSVFormatter {
-    final static String SEP = ",";
+    private static final String SEP = ",";
 
     public static String getHeader() {
         return "ID,TYPE,TITLE,STATUS,DESCRIPTION,DURATION,START_TIME,EPIC_ID(ONLY_FOR_SUBTASKS)";
