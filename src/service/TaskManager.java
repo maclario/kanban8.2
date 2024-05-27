@@ -54,4 +54,6 @@ public interface TaskManager {
     void updateEpicTask(EpicTask newEpictask);
 
     void updateEpicTaskStatus(Integer id);
+
+    List<Task> getPrioritizedTasks();
 }
