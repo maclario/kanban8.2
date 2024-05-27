@@ -4,6 +4,7 @@ import exceptions.LoadingFromFileException;
 import model.EpicTask;
 import model.Subtask;
 import model.Task;
+import model.TaskStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -11,6 +12,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.Month;
+import java.util.ArrayList;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -78,6 +83,33 @@ public class FileBackedTaskManagerTest extends TaskManagerTest<FileBackedTaskMan
             assertEquals(manager.getEpicTask(currId), newManager.getEpicTask(currId),
                     "Эпики в менеджерах с одинаковым id не совпадают.");
         }
+    }
+
+    @Test
+    public void prioritizedTasksOfOldManagerEqualsPrioritizedTasksOfNewManager() {
+        LocalDateTime minStartTime = LocalDateTime.of(2024, Month.MAY, 1,  9, 0);
+        LocalDateTime midStartTime = minStartTime.plusHours(1).plusMinutes(15);
+        LocalDateTime maxStartTime = midStartTime.plusHours(2).plusMinutes(30);
+
+        Task task2 = new Task(102, "t2", "d2", TaskStatus.NEW, Duration.ofMinutes(30), minStartTime);
+        Task task3 = new Task(103, "t3", "d3", TaskStatus.NEW, Duration.ofMinutes(30), midStartTime);
+        Task task4 = new Task(104, "t4", "d4", TaskStatus.NEW, Duration.ofMinutes(30), maxStartTime);
+
+        manager.createTask(task3);
+        manager.createTask(task4);
+        manager.createTask(task2);
+
+        TaskManager newManager = FileBackedTaskManager.loadFromFile(backupFile.toFile());
+        ArrayList<Task> oldTasksList = manager.getPrioritizedTasks();
+        ArrayList<Task> newTasksList = (ArrayList<Task>) newManager.getPrioritizedTasks();
+
+        assertEquals(oldTasksList.size(), newTasksList.size(), "Размеры списков должны быть равны.");
+
+        for (int i = 0; i < oldTasksList.size(); i++) {
+            assertEquals(oldTasksList.get(i), newTasksList.get(i),
+                    "Задачи c индексом " + i + "не совпадают.");
+        }
+
     }
 
 }

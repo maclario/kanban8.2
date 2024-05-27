@@ -1,37 +1,20 @@
 package service;
 
 import exceptions.InvalidReceivedTimeException;
-import model.EpicTask;
-import model.Subtask;
-import model.Task;
-import model.TaskStatus;
-import util.TimeCalculator;
+import model.*;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.time.Month;
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class InMemoryTaskManager implements TaskManager {
     protected Integer taskId = 0;
-    protected HashMap<Integer, Task> allTasks = new HashMap<>();
-    protected HashMap<Integer, EpicTask> allEpicTasks = new HashMap<>();
-    protected HashMap<Integer, Subtask> allSubtasks = new HashMap<>();
+    protected Map<Integer, Task> allTasks = new HashMap<>();
+    protected Map<Integer, EpicTask> allEpicTasks = new HashMap<>();
+    protected Map<Integer, Subtask> allSubtasks = new HashMap<>();
     protected HistoryManager history = Managers.getDefaultHistory();
     protected Set<Task> prioritizedTasks = new TreeSet<>(Comparator.comparing(Task::getStartTime));
-    protected static final int TIME_SLOT_MINUTES = 15;
-    protected Map<LocalDateTime, Boolean> timeSlots; // Занатые слоты: true; Свободные слоты: false.
-
-    public InMemoryTaskManager() {
-        timeSlots = new HashMap<>();
-        LocalDateTime startTime = LocalDateTime.of(2024, Month.JANUARY, 1, 0, 0);
-        LocalDateTime endTime = startTime.plusMonths(12);
-        while (startTime.isBefore(endTime)) {
-            timeSlots.put(startTime, false);
-            startTime = startTime.plusMinutes(TIME_SLOT_MINUTES);
-        }
-    }
 
     @Override
     public List<Task> getHistory() {
@@ -50,7 +33,7 @@ public class InMemoryTaskManager implements TaskManager {
 
     @Override
     public void createTask(Task task) {
-        if (isTimeIntervalBooked(task.getStartTime(), task.getEndTime())) {
+        if (isTimeIntervalBooked(task, getPrioritizedTasks())) {
             throw new InvalidReceivedTimeException("Данное время занято другой задачей.");
         }
         Integer newId = generateId();
@@ -61,7 +44,7 @@ public class InMemoryTaskManager implements TaskManager {
 
     @Override
     public void createSubtask(Subtask subtask) {
-        if (isTimeIntervalBooked(subtask.getStartTime(), subtask.getEndTime())) {
+        if (isTimeIntervalBooked(subtask, getPrioritizedTasks())) {
             throw new InvalidReceivedTimeException("Данное время занято другой задачей.");
         }
         Integer newId = generateId();
@@ -122,7 +105,6 @@ public class InMemoryTaskManager implements TaskManager {
         allTasks.keySet().stream()
                 .peek(history::remove)
                 .map(allTasks::get)
-                .peek(task -> freeTimeInTimeSlots(task.getStartTime(), task.getEndTime()))
                 .forEach(prioritizedTasks::remove);
 
         allTasks.clear();
@@ -133,7 +115,6 @@ public class InMemoryTaskManager implements TaskManager {
         allSubtasks.keySet().stream()
                 .peek(history::remove)
                 .map(allSubtasks::get)
-                .peek(subtask -> freeTimeInTimeSlots(subtask.getStartTime(), subtask.getEndTime()))
                 .forEach(prioritizedTasks::remove);
 
         allEpicTasks.keySet().forEach(history::remove);
@@ -151,7 +132,6 @@ public class InMemoryTaskManager implements TaskManager {
         allSubtasks.keySet().stream()
                 .peek(history::remove)
                 .map(allSubtasks::get)
-                .peek(subtask -> freeTimeInTimeSlots(subtask.getStartTime(), subtask.getEndTime()))
                 .forEach(prioritizedTasks::remove);
 
         allSubtasks.clear();
@@ -163,7 +143,6 @@ public class InMemoryTaskManager implements TaskManager {
         allTasks.remove(id);
         history.remove(id);
         prioritizedTasks.remove(tempTask);
-        freeTimeInTimeSlots(tempTask.getStartTime(), tempTask.getEndTime());
     }
 
     @Override
@@ -174,7 +153,6 @@ public class InMemoryTaskManager implements TaskManager {
         tempEpic.getSubtasks().stream()
                 .peek(history::remove)
                 .map(allSubtasks::remove)
-                .peek(subtask -> freeTimeInTimeSlots(subtask.getStartTime(), subtask.getEndTime()))
                 .forEach(prioritizedTasks::remove);
 
         allEpicTasks.remove(id);
@@ -185,7 +163,6 @@ public class InMemoryTaskManager implements TaskManager {
         final Subtask tempSub = allSubtasks.get(id);
         final EpicTask EpicOwner = allEpicTasks.get(tempSub.getEpicId());
         prioritizedTasks.remove(tempSub);
-        freeTimeInTimeSlots(tempSub.getStartTime(), tempSub.getEndTime());
         history.remove(id);
         EpicOwner.removeLinkedSubtask(id);
         updateEpicAttributes(EpicOwner.getId());
@@ -200,10 +177,11 @@ public class InMemoryTaskManager implements TaskManager {
 
     @Override
     public void updateTask(Task task) {
-        if (isTimeIntervalBooked(task.getStartTime(), task.getEndTime())) {
+        if (isTimeIntervalBooked(task, getPrioritizedTasks())) {
             throw new InvalidReceivedTimeException("Данное время занято.");
         }
         if (allTasks.containsKey(task.getId())) {
+            prioritizedTasks.remove(allTasks.get(task.getId()));
             allTasks.put(task.getId(), task);
             addTaskToPrioritizedTasks(task);
         }
@@ -211,13 +189,14 @@ public class InMemoryTaskManager implements TaskManager {
 
     @Override
     public void updateSubtask(Subtask subtask) {
-        if (isTimeIntervalBooked(subtask.getStartTime(), subtask.getEndTime())) {
+        if (isTimeIntervalBooked(subtask, getPrioritizedTasks())) {
             throw new InvalidReceivedTimeException("Данное время занято.");
         }
         if (allSubtasks.containsKey(subtask.getId())) {
             Integer epicId = subtask.getEpicId();
             allSubtasks.put(subtask.getId(), subtask);
             updateEpicTaskStatus(epicId);
+            prioritizedTasks.remove(allSubtasks.get(subtask.getId()));
             addTaskToPrioritizedTasks(subtask);
             updateEpicAttributes(epicId);
         }
@@ -270,59 +249,47 @@ public class InMemoryTaskManager implements TaskManager {
         return task != null && task.getStartTime() != null;
     }
 
-    private void addTaskToPrioritizedTasks(Task task) {
+    protected void addTaskToPrioritizedTasks(Task task) {
         if (isPossibleToPrioritizeByTime(task)) {
             prioritizedTasks.add(task);
-            bookTimeInTimeSlots(task.getStartTime(), task.getEndTime());
         }
     }
 
     private void updateEpicAttributes(int id) {
         final EpicTask epic = allEpicTasks.get(id);
         final List<Integer> idList = epic.getSubtasks();
-        final HashMap<Integer, Subtask> AllSubs = allSubtasks;
+        LocalDateTime earliestStartTime;
+        LocalDateTime latestEndTime;
 
-        final Duration duration = TimeCalculator.findDurationSum(idList, AllSubs);
-        final LocalDateTime startTime = TimeCalculator.findEarliestStartTime(idList, AllSubs);
-        final LocalDateTime endTime = TimeCalculator.findLatestEndTime(idList, AllSubs);
+            List<Task> timeFrontiers = prioritizedTasks.stream()
+                .filter(Task -> idList.contains(Task.getId()))
+                .toList();
 
-        epic.setStartTime(startTime);
-        epic.setDuration(duration);
-        epic.setEndTime(endTime);
+        if (timeFrontiers.isEmpty()) {
+            earliestStartTime = null;
+            latestEndTime = null;
+            epic.setDuration(null);
+        } else {
+            earliestStartTime = timeFrontiers.getFirst().getStartTime();
+            latestEndTime = timeFrontiers.getLast().getEndTime();
+            epic.setDuration(Duration.between(earliestStartTime, latestEndTime));
+        }
+
+        epic.setStartTime(earliestStartTime);
+        epic.setEndTime(latestEndTime);
         updateEpicTaskStatus(id);
     }
 
-    private void bookTimeInTimeSlots(LocalDateTime start, LocalDateTime end) {
-        LocalDateTime currDateTime = start;
-        while (currDateTime.isBefore(end)) {
-            timeSlots.put(currDateTime, true);
-            currDateTime = currDateTime.plusMinutes(TIME_SLOT_MINUTES);
-        }
-    }
-
-    private void freeTimeInTimeSlots(LocalDateTime start, LocalDateTime end) {
-        if (start == null || end == null) {
-            return;
-        }
-        LocalDateTime currDateTime = start;
-        while (currDateTime.isBefore(end)) {
-            timeSlots.put(currDateTime, false);
-            currDateTime = currDateTime.plusMinutes(TIME_SLOT_MINUTES);
-        }
-    }
-
-    private boolean isTimeIntervalBooked(LocalDateTime start, LocalDateTime end) {
-        if (start == null || end == null) {
+    private boolean isTimeIntervalBooked(Task newTask, List<Task> existedTasks) {
+        if (newTask.getStartTime() == null || newTask.getEndTime() == null) {
             return false;
         }
-        LocalDateTime currDateTime = start;
-        while (currDateTime.isBefore(end)) {
-            if (!timeSlots.containsKey(currDateTime) || timeSlots.get(currDateTime)) {
-                return true;
-            }
-            currDateTime = currDateTime.plusMinutes(TIME_SLOT_MINUTES);
-        }
-        return false;
+        return existedTasks.stream().anyMatch(existedTask -> checkTimeIntersection(newTask, existedTask));
+    }
+
+    private boolean checkTimeIntersection(Task newTask, Task existedTask) {
+        return newTask.getStartTime().isBefore(existedTask.getEndTime()) &&
+                newTask.getEndTime().isAfter(existedTask.getStartTime());
     }
 
 }

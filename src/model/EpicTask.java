@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 
 public class EpicTask extends Task {
+    private LocalDateTime endTime;
     private ArrayList<Integer> subtasks = new ArrayList<>();
 
     public EpicTask(String title, String description) {

@@ -153,9 +153,8 @@ public abstract class TaskManagerTest<T extends TaskManager> {
         manager.createTask(task2);
         final int oldTasksCounter = manager.getAllTasks().size();
 
-        assertThrows(InvalidReceivedTimeException.class, () -> {
-            manager.createTask(task3);
-        }, "Новая задача пересекается по времени с существующей задачей. " +
+        assertThrows(InvalidReceivedTimeException.class, () -> manager.createTask(task3),
+                "Новая задача пересекается по времени с существующей задачей. " +
                 "\nДанный сценарий должен вызвать выброс исключения InvalidReceivedTimeException.");
 
         final int newTasksCounter = manager.getAllTasks().size();
@@ -164,27 +163,27 @@ public abstract class TaskManagerTest<T extends TaskManager> {
 
     @Test
     public void getPrioritizedTasksTest() {
-        Task[] expectedResult = new Task[3];
-        LocalDateTime minStartValue = LocalDateTime.of(2024, Month.MAY, 1,  9, 0);
-        LocalDateTime midStartValue = minStartValue.plusHours(2).plusMinutes(15);
-        LocalDateTime maxStartValue = midStartValue.plusHours(2).plusMinutes(15);
+        Task[] correctManualSortedArray = new Task[3];
+        LocalDateTime minStartTime = LocalDateTime.of(2024, Month.MAY, 1,  9, 0);
+        LocalDateTime midStartTime = minStartTime.plusHours(1).plusMinutes(15);
+        LocalDateTime maxStartTime = midStartTime.plusHours(2).plusMinutes(30);
 
-        Task task2 = new Task(102, "title", "desc", TaskStatus.NEW, Duration.ofMinutes(30), minStartValue);
-        Task task3 = new Task(103, "title", "desc", TaskStatus.NEW, Duration.ofMinutes(30), midStartValue);
-        Task task4 = new Task(104, "title", "desc", TaskStatus.NEW, Duration.ofMinutes(30), maxStartValue);
+        Task task2 = new Task(102, "t2", "d2", TaskStatus.NEW, Duration.ofMinutes(30), minStartTime);
+        Task task3 = new Task(103, "t3", "d3", TaskStatus.NEW, Duration.ofMinutes(30), midStartTime);
+        Task task4 = new Task(104, "t4", "d4", TaskStatus.NEW, Duration.ofMinutes(30), maxStartTime);
 
         manager.createTask(task3);
         manager.createTask(task4);
         manager.createTask(task2);
-        expectedResult[0] = task2;
-        expectedResult[1] = task3;
-        expectedResult[2] = task4;
+        correctManualSortedArray[0] = task2;
+        correctManualSortedArray[1] = task3;
+        correctManualSortedArray[2] = task4;
 
         ArrayList<Task> prioritizedTasks = (ArrayList<Task>) manager.getPrioritizedTasks();
         assertEquals(3, prioritizedTasks.size(), "Размеры массива и списка должны быть равны.");
 
         for (int i = 0; i < prioritizedTasks.size(); i++) {
-            assertEquals(expectedResult[i], prioritizedTasks.get(i), "Отсортированные результаты не совпадают.");
+            assertEquals(correctManualSortedArray[i], prioritizedTasks.get(i), "Отсортированные результаты не совпадают.");
         }
     }
 

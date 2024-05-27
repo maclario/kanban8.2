@@ -17,7 +17,7 @@ public class CSVFormatter {
         Long duration;
 
         if (task.getType().equals(TaskType.SUBTASK)) {
-            epicId = ((Subtask) task).getEpicId().toString();
+            epicId = ((Subtask)task).getEpicId().toString();
         } else {
             epicId = "";
         }

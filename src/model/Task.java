@@ -10,7 +10,6 @@ public class Task {
     protected String description;
     protected Duration duration;
     protected LocalDateTime startTime;
-    protected LocalDateTime endTime;
     protected TaskStatus status;
 
     public Task(String title, String description) {
@@ -111,7 +110,7 @@ public class Task {
                 ", status=" + status +
                 ", duration=" + duration +
                 ", startTime=" + startTime +
-                ", endTime=" + endTime +
+                ", endTime=" + getEndTime() +
                 '}';
     }
 

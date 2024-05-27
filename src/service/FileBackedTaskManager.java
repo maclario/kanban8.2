@@ -83,9 +83,17 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
 
     private void defineTypeAndAddToRelevantStorage(Task task) {
         switch (task.getType()) {
-            case EPIC -> allEpicTasks.put(task.getId(), (EpicTask) task);
-            case SUBTASK -> allSubtasks.put(task.getId(), (Subtask) task);
-            case TASK -> allTasks.put(task.getId(), task);
+            case EPIC:
+                allEpicTasks.put(task.getId(), (EpicTask) task);
+                break;
+            case SUBTASK:
+                allSubtasks.put(task.getId(), (Subtask) task);
+                addTaskToPrioritizedTasks(task);
+                break;
+            case TASK:
+                allTasks.put(task.getId(), task);
+                addTaskToPrioritizedTasks(task);
+                break;
         }
     }
 
